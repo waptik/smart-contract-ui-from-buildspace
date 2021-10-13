@@ -72,7 +72,7 @@ export default function App() {
         return;
       }
       setIsMining(true)
-      const clapTxn = await clapPortalContract.clap(message)
+      const clapTxn = await clapPortalContract.clap(message, { gasLimit: 300000 })
       await clapTxn.wait()
       const count = await clapPortalContract.getTotalClaps()
       setCountClaps(count.toNumber())
