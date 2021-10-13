@@ -12,16 +12,14 @@ export default function App() {
   const [error, setError] = useState(null)
 
 
-  const contractAddress = "0xB04740b01A6EaDDeC11Ce1Bf5E4974738984901F"
+  const contractAddress = process.env.REACT_APP_CONTRACT_ADDRESS
+
   const contractABI = ClapPortalJson.abi
 
 
   const provider = new ethers.providers.Web3Provider(window.ethereum)
   const signer = provider.getSigner()
   const clapPortalContract = new ethers.Contract(contractAddress, contractABI, signer)
-
-
-
 
 
 
@@ -126,6 +124,19 @@ export default function App() {
         })
 
         setAllClaps(clapsCleaned)
+
+        /**
+         * Listen in for emitter events!
+         */
+        clapPortalContract.on("NewClap", (from, timestamp, message) => {
+          console.log("NewClap", from, timestamp, message);
+
+          setAllClaps(prevState => [...prevState, {
+            address: from,
+            timestamp: new Date(timestamp * 1000),
+            message: message
+          }]);
+        });
       } catch (error) {
         console.log(error);
 
@@ -154,13 +165,13 @@ export default function App() {
         </div>
 
         <div className="bio">
-          Steve here, getting started into the world of crypto. Sounds fun right? Connect your Ethereum wallet and clap for me if you like what i do!
+          Heya! Stephane here, getting started into the world of crypto. This is my first web3 website. Sounds fun right? Connect your Ethereum wallet and clap for me if you like what i do(Psss, you might stand the chance of getting something back in return)!
         </div>
 
         {currentAccount ? (
 
-          <>
-            <span>Message</span> <textarea value={message} onChange={e => {
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", margin: "2rem" }}>
+            <textarea style={{ width: "100%", margin: "2rem" }} placeholder="Message" value={message} onChange={e => {
               e.preventDefault();
               const text = e.target.value
               setMessage(text)
@@ -168,7 +179,7 @@ export default function App() {
             <button className="clapButton" disabled={isMining} onClick={clap}>
               Clap for Me
         </button>
-          </>
+          </div>
         ) : <button className="clapButton" onClick={connectWallet}>
             Connect your wallet
         </button>
