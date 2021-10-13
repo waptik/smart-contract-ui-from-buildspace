@@ -22,8 +22,59 @@ export default function App() {
   const clapPortalContract = new ethers.Contract(contractAddress, contractABI, signer)
 
 
+  const getAllClaps = async () => {
+    try {
+      const { ethereum } = window
+      if (!ethereum) {
+        console.log("Ethereum object doesn't exist!")
+        return
+      }
 
-  const checkIfEthereumIsAvailable = () => {
+      const claps = await clapPortalContract.getAllClaps()
+
+      let clapsCleaned = []
+
+      claps.forEach(clap => {
+        clapsCleaned.push({
+          address: clap.clapper,
+          message: clap.message,
+          timestamp: new Date(clap.timestamp * 100)
+        })
+      })
+
+      if (allClaps.length < 1) {
+        setAllClaps(clapsCleaned)
+      }
+
+      /**
+       * Listen in for emitter events!
+       */
+      clapPortalContract.on("NewClap", async (from, timestamp, message) => {
+        console.log("NewClap", from, timestamp, message);
+
+        setAllClaps(prevState => [...prevState, {
+          address: from,
+          timestamp: new Date(timestamp * 1000),
+          message: message
+        }]);
+
+
+      });
+
+      const count = await clapPortalContract.getTotalClaps()
+      console.log("Retrieved total claps count...", count.toNumber());
+      setCountClaps(count.toNumber())
+    } catch (error) {
+      console.log(error);
+
+    }
+
+
+  }
+
+
+
+  const checkIfWalletIsConnected = () => {
 
     //let's check if ethereum is available in the browser
     const { ethereum } = window
@@ -34,7 +85,7 @@ export default function App() {
     }
 
     // check for account linked the ethereum
-    ethereum.request({ method: "eth_accounts" }).then(accounts => {
+    ethereum.request({ method: "eth_accounts" }).then(async accounts => {
       if (accounts.length > 0) {
         const account = accounts[0]
 
@@ -42,6 +93,7 @@ export default function App() {
       } else {
         console.log("Eish, no account was found")
       }
+      await getAllClaps()
     })
   }
 
@@ -72,8 +124,6 @@ export default function App() {
       setIsMining(true)
       const clapTxn = await clapPortalContract.clap(message, { gasLimit: 300000 })
       await clapTxn.wait()
-      const count = await clapPortalContract.getTotalClaps()
-      setCountClaps(count.toNumber())
       setIsMining(false)
       setMessage('')
     } catch (err) {
@@ -93,61 +143,8 @@ export default function App() {
 
 
   useEffect(() => {
-    checkIfEthereumIsAvailable()
-
-    const getTotalClaps = async () => {
-      const count = await clapPortalContract.getTotalClaps()
-      setCountClaps(count.toNumber())
-    }
-    getTotalClaps()
-  }, [clapPortalContract])
-
-  useEffect(() => {
-    const getAllClaps = async () => {
-      try {
-        const { ethereum } = window
-        if (!ethereum) {
-          console.log("Ethereum object doesn't exist!")
-          return
-        }
-
-        const claps = await clapPortalContract.getAllClaps()
-
-        let clapsCleaned = []
-
-        claps.forEach(clap => {
-          clapsCleaned.push({
-            address: clap.clapper,
-            message: clap.message,
-            timestamp: new Date(clap.timestamp * 100)
-          })
-        })
-
-        setAllClaps(clapsCleaned)
-
-        /**
-         * Listen in for emitter events!
-         */
-        clapPortalContract.on("NewClap", (from, timestamp, message) => {
-          console.log("NewClap", from, timestamp, message);
-
-          setAllClaps(prevState => [...prevState, {
-            address: from,
-            timestamp: new Date(timestamp * 1000),
-            message: message
-          }]);
-        });
-      } catch (error) {
-        console.log(error);
-
-      }
-
-
-    }
-
-    if (currentAccount)
-      getAllClaps()
-  }, [clapPortalContract, currentAccount])
+    checkIfWalletIsConnected()
+  }, [])
 
 
   useEffect(() => {
@@ -190,7 +187,7 @@ export default function App() {
 
         {allClaps.map((clap, index) => {
           return (
-            <div key={index} style={{ backgroundColor: "OldLace", marginTop: "16px", padding: "8px" }}>
+            <div key={index} style={{ backgroundColor: "OldLace", marginTop: "16px", marginBottom: "16px", padding: "8px" }}>
               <div>Address: {clap.address}</div>
               <div>Time: {clap.timestamp.toString()}</div>
               <div>Message: {clap.message}</div>
